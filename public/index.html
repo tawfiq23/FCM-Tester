@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCM v1 Notification Tester</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="glow"></div>
+  
+  <div class="app-container">
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">🔥</span>
+        <h1>FCM v1 <span class="accent-text">Tester</span></h1>
+      </div>
+      <p class="subtitle">Securely send cloud messages and monitor raw API payloads in real-time</p>
+    </header>
+
+    <main class="app-content">
+      <!-- Left Column: Form Controls -->
+      <section class="form-section glass-panel">
+        <h2 class="section-title">Message Configuration</h2>
+        
+        <form id="fcmForm">
+          <!-- Service Account Upload -->
+          <div class="form-group">
+            <label for="serviceFile">Google Service Account Key (JSON)</label>
+            <div class="file-drop-zone" id="dropZone">
+              <span class="drop-icon">📁</span>
+              <span class="drop-text">Drag & drop or click to upload JSON</span>
+              <input type="file" id="serviceFile" accept=".json" required>
+            </div>
+            <div id="fileInfo" class="file-info hidden">
+              <span class="file-name">service-account.json</span>
+              <button type="button" class="remove-file-btn" id="removeFile">&times;</button>
+            </div>
+          </div>
+
+          <!-- Notification Parameters -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="title">Notification Title</label>
+              <input type="text" id="title" placeholder="e.g. Special Offer!" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="imageUrl">Image URL (Optional)</label>
+              <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="body">Notification Body</label>
+            <textarea id="body" rows="3" placeholder="Write notification message content here..." required></textarea>
+          </div>
+
+          <!-- FCM Tokens -->
+          <div class="form-group">
+            <label for="tokens">FCM Tokens (One per line)</label>
+            <textarea id="tokens" rows="5" placeholder="device_token_1&#10;device_token_2" required></textarea>
+            <span class="helper-text">Enter one or more Firebase registration tokens</span>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span class="btn-text">Send Notification</span>
+            <span class="spinner hidden"></span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Column: Terminal Console Logs -->
+      <section class="console-section">
+        <div class="console-window">
+          <div class="console-header">
+            <div class="window-controls">
+              <span class="dot close"></span>
+              <span class="dot minimize"></span>
+              <span class="dot maximize"></span>
+            </div>
+            <div class="console-title">fcm-console.sh</div>
+            <div class="console-actions">
+              <button class="console-btn" id="clearConsole" title="Clear console">🧹 Clear</button>
+              <button class="console-btn" id="copyConsole" title="Copy output">📋 Copy</button>
+            </div>
+          </div>
+          <div class="console-body" id="consoleBody">
+            <div class="console-line system-line">[SYSTEM] Ready to send. Upload service file and tokens to begin.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
