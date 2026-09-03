@@ -60,11 +60,40 @@
             <textarea id="body" rows="3" placeholder="Write notification message content here..." required></textarea>
           </div>
 
-          <!-- FCM Tokens -->
+          <!-- Target Mode -->
           <div class="form-group">
+            <label>Send To</label>
+            <div class="target-toggle">
+              <label class="radio-label">
+                <input type="radio" name="targetMode" value="tokens" id="targetTokens" checked>
+                <span>Device Tokens</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="targetMode" value="topic" id="targetTopic">
+                <span>Topic</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- FCM Tokens -->
+          <div class="form-group" id="tokensGroup">
             <label for="tokens">FCM Tokens (One per line)</label>
             <textarea id="tokens" rows="5" placeholder="device_token_1&#10;device_token_2" required></textarea>
             <span class="helper-text">Enter one or more Firebase registration tokens</span>
+          </div>
+
+          <!-- FCM Topic -->
+          <div class="form-group hidden" id="topicGroup">
+            <label for="topic">Topic Name</label>
+            <input type="text" id="topic" placeholder="e.g. news-updates">
+            <span class="helper-text">Sends one message to all devices subscribed to this topic</span>
+          </div>
+
+          <!-- Custom Data Payload -->
+          <div class="form-group">
+            <label for="customData">Custom Data Payload (JSON, Optional)</label>
+            <textarea id="customData" rows="4" class="code-input" placeholder='{&#10;  "itemType": "1",&#10;  "itemId": "42"&#10;}'></textarea>
+            <span class="helper-text">Merged into the FCM "data" field, overriding defaults (title, body, itemType, itemId)</span>
           </div>
 
           <button type="submit" class="submit-btn" id="submitBtn">

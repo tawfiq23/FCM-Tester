@@ -8,16 +8,22 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 app.post('/api/send', async (req, res) => {
-  const { serviceAccount, tokens, title, body, imageUrl } = req.body;
+  const { serviceAccount, tokens, topic, title, body, imageUrl, customData } = req.body;
 
   if (!serviceAccount) {
     return res.status(400).json({ error: 'Service account JSON is required' });
   }
-  if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-    return res.status(400).json({ error: 'At least one FCM token is required' });
+  const trimmedTopic = typeof topic === 'string' ? topic.trim() : '';
+  const hasTokens = Array.isArray(tokens) && tokens.length > 0;
+  if (!hasTokens && !trimmedTopic) {
+    return res.status(400).json({ error: 'At least one FCM token or a topic is required' });
   }
   if (!title || !body) {
     return res.status(400).json({ error: 'Notification title and body are required' });
+  }
+  if (customData !== undefined && customData !== null &&
+      (typeof customData !== 'object' || Array.isArray(customData))) {
+    return res.status(400).json({ error: 'customData must be a JSON object' });
   }
 
   let credentials;
@@ -60,15 +66,21 @@ app.post('/api/send', async (req, res) => {
   }
 
   const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
-  
-  for (const token of tokens) {
-    const trimmedToken = token.trim();
-    if (!trimmedToken) continue;
+
+  // Targets are either a single topic, or a list of device tokens
+  const targets = trimmedTopic
+    ? [{ type: 'topic', value: trimmedTopic }]
+    : tokens.map(t => t.trim()).filter(t => t).map(t => ({ type: 'token', value: t }));
+
+  for (const target of targets) {
+    const targetLabel = target.type === 'topic'
+      ? `topic: ${target.value}`
+      : `token: ${target.value.substring(0, 15)}...`;
 
     // Build standard FCM v1 request body
     const messagePayload = {
       message: {
-        token: trimmedToken,
+        [target.type]: target.value,
         notification: {
           title,
           body
@@ -81,6 +93,13 @@ app.post('/api/send', async (req, res) => {
         }
       }
     };
+
+    if (customData && typeof customData === 'object') {
+      for (const [key, value] of Object.entries(customData)) {
+        // FCM data payload values must all be strings
+        messagePayload.message.data[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+    }
 
     if (imageUrl && imageUrl.trim()) {
       const url = imageUrl.trim();
@@ -102,7 +121,7 @@ app.post('/api/send', async (req, res) => {
       };
     }
 
-    logMsg('info', `Sending notification to token: ${trimmedToken.substring(0, 15)}...`, {
+    logMsg('info', `Sending notification to ${targetLabel}`, {
       endpoint: fcmUrl,
       requestBody: messagePayload
     });
@@ -126,18 +145,18 @@ app.post('/api/send', async (req, res) => {
       }
 
       if (response.ok) {
-        logMsg('success', `Successfully sent to token: ${trimmedToken.substring(0, 15)}...`, {
+        logMsg('success', `Successfully sent to ${targetLabel}`, {
           status: response.status,
           response: responseJson
         });
       } else {
-        logMsg('error', `Failed to send to token: ${trimmedToken.substring(0, 15)}...`, {
+        logMsg('error', `Failed to send to ${targetLabel}`, {
           status: response.status,
           response: responseJson
         });
       }
     } catch (err) {
-      logMsg('error', `Network error sending to token: ${trimmedToken.substring(0, 15)}...`, {
+      logMsg('error', `Network error sending to ${targetLabel}`, {
         error: err.message
       });
     }

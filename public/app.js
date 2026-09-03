@@ -11,8 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = document.getElementById('submitBtn');
   const submitSpinner = submitBtn.querySelector('.spinner');
   const submitText = submitBtn.querySelector('.btn-text');
+  const tokensGroup = document.getElementById('tokensGroup');
+  const topicGroup = document.getElementById('topicGroup');
+  const tokensTextarea = document.getElementById('tokens');
+  const topicInput = document.getElementById('topic');
+  const targetModeRadios = document.querySelectorAll('input[name="targetMode"]');
 
   let serviceAccountJsonText = null;
+
+  // Target Mode Toggle (Tokens vs Topic)
+  const updateTargetMode = () => {
+    const mode = document.querySelector('input[name="targetMode"]:checked').value;
+    if (mode === 'topic') {
+      tokensGroup.classList.add('hidden');
+      topicGroup.classList.remove('hidden');
+      tokensTextarea.required = false;
+      topicInput.required = true;
+    } else {
+      tokensGroup.classList.remove('hidden');
+      topicGroup.classList.add('hidden');
+      tokensTextarea.required = true;
+      topicInput.required = false;
+    }
+  };
+  targetModeRadios.forEach(radio => radio.addEventListener('change', updateTargetMode));
+  updateTargetMode();
 
   // File Handling
   const processFile = (file) => {
@@ -135,26 +158,57 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const tokensText = document.getElementById('tokens').value;
-    const tokens = tokensText.split('\n')
-      .map(t => t.trim())
-      .filter(t => t.length > 0);
+    const targetMode = document.querySelector('input[name="targetMode"]:checked').value;
+    let tokens = [];
+    let topic = null;
 
-    if (tokens.length === 0) {
-      addLog('error', 'Please enter at least one registration token.');
-      return;
+    if (targetMode === 'topic') {
+      topic = topicInput.value.trim();
+      if (!topic) {
+        addLog('error', 'Please enter a topic name.');
+        return;
+      }
+    } else {
+      const tokensText = tokensTextarea.value;
+      tokens = tokensText.split('\n')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      if (tokens.length === 0) {
+        addLog('error', 'Please enter at least one registration token.');
+        return;
+      }
     }
 
     const title = document.getElementById('title').value.trim();
     const body = document.getElementById('body').value.trim();
     const imageUrl = document.getElementById('imageUrl').value.trim();
 
+    const customDataText = document.getElementById('customData').value.trim();
+    let customData = null;
+    if (customDataText) {
+      try {
+        customData = JSON.parse(customDataText);
+        if (typeof customData !== 'object' || customData === null || Array.isArray(customData)) {
+          addLog('error', 'Custom data payload must be a JSON object.');
+          return;
+        }
+      } catch (err) {
+        addLog('error', `Invalid custom data payload JSON: ${err.message}`);
+        return;
+      }
+    }
+
     // UI Loading State
     submitBtn.disabled = true;
     submitSpinner.classList.remove('hidden');
     submitText.textContent = 'Sending...';
 
-    addLog('info', `Starting notification request batch for ${tokens.length} token(s)...`);
+    if (targetMode === 'topic') {
+      addLog('info', `Starting notification request for topic "${topic}"...`);
+    } else {
+      addLog('info', `Starting notification request batch for ${tokens.length} token(s)...`);
+    }
 
     try {
       const response = await fetch('/api/send', {
@@ -165,9 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           serviceAccount: serviceAccountJsonText,
           tokens,
+          topic,
           title,
           body,
-          imageUrl
+          imageUrl,
+          customData
         })
       });
 
