@@ -2,13 +2,25 @@ const express = require('express');
 const cors = require('cors');
 const { GoogleAuth } = require('google-auth-library');
 
+const isPlainObject = (val) => typeof val === 'object' && val !== null && !Array.isArray(val);
+
+const deepMerge = (base, overlay) => {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(overlay)) {
+    result[key] = isPlainObject(value) && isPlainObject(result[key])
+      ? deepMerge(result[key], value)
+      : value;
+  }
+  return result;
+};
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 app.post('/api/send', async (req, res) => {
-  const { serviceAccount, tokens, topic, title, body, imageUrl, customData } = req.body;
+  const { serviceAccount, tokens, topic, title, body, imageUrl, customData, customApns } = req.body;
 
   if (!serviceAccount) {
     return res.status(400).json({ error: 'Service account JSON is required' });
@@ -24,6 +36,10 @@ app.post('/api/send', async (req, res) => {
   if (customData !== undefined && customData !== null &&
       (typeof customData !== 'object' || Array.isArray(customData))) {
     return res.status(400).json({ error: 'customData must be a JSON object' });
+  }
+  if (customApns !== undefined && customApns !== null &&
+      (typeof customApns !== 'object' || Array.isArray(customApns))) {
+    return res.status(400).json({ error: 'customApns must be a JSON object' });
   }
 
   let credentials;
@@ -101,6 +117,10 @@ app.post('/api/send', async (req, res) => {
       }
     }
 
+    if (isPlainObject(customApns)) {
+      messagePayload.message.apns = customApns;
+    }
+
     if (imageUrl && imageUrl.trim()) {
       const url = imageUrl.trim();
       messagePayload.message.data.bigPicture = url;
@@ -109,7 +129,9 @@ app.post('/api/send', async (req, res) => {
           image: url
         }
       };
-      messagePayload.message.apns = {
+      // Deep-merge so a custom apns payload (e.g. a custom alert) survives
+      // alongside the mutable-content/fcm_options.image the image needs.
+      messagePayload.message.apns = deepMerge(messagePayload.message.apns || {}, {
         payload: {
           aps: {
             "mutable-content": 1
@@ -118,7 +140,7 @@ app.post('/api/send', async (req, res) => {
         fcm_options: {
           image: url
         }
-      };
+      });
     }
 
     logMsg('info', `Sending notification to ${targetLabel}`, {

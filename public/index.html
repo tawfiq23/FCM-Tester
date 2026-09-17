@@ -96,6 +96,13 @@
             <span class="helper-text">Merged into the FCM "data" field, overriding defaults (title, body, itemType, itemId)</span>
           </div>
 
+          <!-- Custom APNS Payload -->
+          <div class="form-group">
+            <label for="customApns">Custom APNS Payload (JSON, Optional)</label>
+            <textarea id="customApns" rows="4" class="code-input" placeholder='{&#10;  "payload": {&#10;    "aps": {&#10;      "mutable-content": 1,&#10;      "alert": { "title": "Test", "body": "Hello" }&#10;    }&#10;  }&#10;}'></textarea>
+            <span class="helper-text">Merged into the FCM "apns" field. If an image is set, the resulting mutable-content/fcm_options.image are merged in too, and the final apns object is shown in the console.</span>
+          </div>
+
           <button type="submit" class="submit-btn" id="submitBtn">
             <span class="btn-text">Send Notification</span>
             <span class="spinner hidden"></span>

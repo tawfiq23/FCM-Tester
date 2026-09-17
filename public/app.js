@@ -199,6 +199,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    const customApnsText = document.getElementById('customApns').value.trim();
+    let customApns = null;
+    if (customApnsText) {
+      try {
+        customApns = JSON.parse(customApnsText);
+        if (typeof customApns !== 'object' || customApns === null || Array.isArray(customApns)) {
+          addLog('error', 'Custom APNS payload must be a JSON object.');
+          return;
+        }
+      } catch (err) {
+        addLog('error', `Invalid custom APNS payload JSON: ${err.message}`);
+        return;
+      }
+    }
+
     // UI Loading State
     submitBtn.disabled = true;
     submitSpinner.classList.remove('hidden');
@@ -223,7 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
           title,
           body,
           imageUrl,
-          customData
+          customData,
+          customApns
         })
       });
 
