@@ -42,65 +42,89 @@
             </div>
           </div>
 
-          <!-- Notification Parameters -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="title">Notification Title</label>
-              <input type="text" id="title" placeholder="e.g. Special Offer!" required>
-            </div>
-            
-            <div class="form-group">
-              <label for="imageUrl">Image URL (Optional)</label>
-              <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg">
-            </div>
-          </div>
-
+          <!-- Payload Mode -->
           <div class="form-group">
-            <label for="body">Notification Body</label>
-            <textarea id="body" rows="3" placeholder="Write notification message content here..." required></textarea>
-          </div>
-
-          <!-- Target Mode -->
-          <div class="form-group">
-            <label>Send To</label>
+            <label>Payload Mode</label>
             <div class="target-toggle">
               <label class="radio-label">
-                <input type="radio" name="targetMode" value="tokens" id="targetTokens" checked>
-                <span>Device Tokens</span>
+                <input type="radio" name="payloadMode" value="guided" id="modeGuided" checked>
+                <span>Guided Form</span>
               </label>
               <label class="radio-label">
-                <input type="radio" name="targetMode" value="topic" id="targetTopic">
-                <span>Topic</span>
+                <input type="radio" name="payloadMode" value="raw" id="modeRaw">
+                <span>Raw JSON Payload</span>
               </label>
             </div>
           </div>
 
-          <!-- FCM Tokens -->
-          <div class="form-group" id="tokensGroup">
-            <label for="tokens">FCM Tokens (One per line)</label>
-            <textarea id="tokens" rows="5" placeholder="device_token_1&#10;device_token_2" required></textarea>
-            <span class="helper-text">Enter one or more Firebase registration tokens</span>
+          <div id="guidedFields">
+            <!-- Notification Parameters -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="title">Notification Title</label>
+                <input type="text" id="title" placeholder="e.g. Special Offer!">
+              </div>
+
+              <div class="form-group">
+                <label for="imageUrl">Image URL (Optional)</label>
+                <input type="url" id="imageUrl" placeholder="https://example.com/image.jpg">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="body">Notification Body</label>
+              <textarea id="body" rows="3" placeholder="Write notification message content here..."></textarea>
+            </div>
+
+            <!-- Target Mode -->
+            <div class="form-group">
+              <label>Send To</label>
+              <div class="target-toggle">
+                <label class="radio-label">
+                  <input type="radio" name="targetMode" value="tokens" id="targetTokens" checked>
+                  <span>Device Tokens</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="targetMode" value="topic" id="targetTopic">
+                  <span>Topic</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- FCM Tokens -->
+            <div class="form-group" id="tokensGroup">
+              <label for="tokens">FCM Tokens (One per line)</label>
+              <textarea id="tokens" rows="5" placeholder="device_token_1&#10;device_token_2"></textarea>
+              <span class="helper-text">Enter one or more Firebase registration tokens</span>
+            </div>
+
+            <!-- FCM Topic -->
+            <div class="form-group hidden" id="topicGroup">
+              <label for="topic">Topic Name</label>
+              <input type="text" id="topic" placeholder="e.g. news-updates">
+              <span class="helper-text">Sends one message to all devices subscribed to this topic</span>
+            </div>
+
+            <!-- Custom Data Payload -->
+            <div class="form-group">
+              <label for="customData">Custom Data Payload (JSON, Optional)</label>
+              <textarea id="customData" rows="4" class="code-input" placeholder='{&#10;  "itemType": "1",&#10;  "itemId": "42"&#10;}'></textarea>
+              <span class="helper-text">Merged into the FCM "data" field, overriding defaults (title, body, itemType, itemId)</span>
+            </div>
+
+            <!-- Custom APNS Payload -->
+            <div class="form-group">
+              <label for="customApns">Custom APNS Payload (JSON, Optional)</label>
+              <textarea id="customApns" rows="4" class="code-input" placeholder='{&#10;  "payload": {&#10;    "aps": {&#10;      "mutable-content": 1,&#10;      "alert": { "title": "Test", "body": "Hello" }&#10;    }&#10;  }&#10;}'></textarea>
+              <span class="helper-text">Merged into the FCM "apns" field. If an image is set, the resulting mutable-content/fcm_options.image are merged in too, and the final apns object is shown in the console.</span>
+            </div>
           </div>
 
-          <!-- FCM Topic -->
-          <div class="form-group hidden" id="topicGroup">
-            <label for="topic">Topic Name</label>
-            <input type="text" id="topic" placeholder="e.g. news-updates">
-            <span class="helper-text">Sends one message to all devices subscribed to this topic</span>
-          </div>
-
-          <!-- Custom Data Payload -->
-          <div class="form-group">
-            <label for="customData">Custom Data Payload (JSON, Optional)</label>
-            <textarea id="customData" rows="4" class="code-input" placeholder='{&#10;  "itemType": "1",&#10;  "itemId": "42"&#10;}'></textarea>
-            <span class="helper-text">Merged into the FCM "data" field, overriding defaults (title, body, itemType, itemId)</span>
-          </div>
-
-          <!-- Custom APNS Payload -->
-          <div class="form-group">
-            <label for="customApns">Custom APNS Payload (JSON, Optional)</label>
-            <textarea id="customApns" rows="4" class="code-input" placeholder='{&#10;  "payload": {&#10;    "aps": {&#10;      "mutable-content": 1,&#10;      "alert": { "title": "Test", "body": "Hello" }&#10;    }&#10;  }&#10;}'></textarea>
-            <span class="helper-text">Merged into the FCM "apns" field. If an image is set, the resulting mutable-content/fcm_options.image are merged in too, and the final apns object is shown in the console.</span>
+          <!-- Raw Payload -->
+          <div class="form-group hidden" id="rawPayloadGroup">
+            <label for="rawPayload">Raw FCM Request Body (JSON)</label>
+            <textarea id="rawPayload" rows="14" class="code-input" placeholder='{&#10;  "message": {&#10;    "token": "device_token",&#10;    "notification": { "title": "Test", "body": "Hello" }&#10;  }&#10;}'></textarea>
+            <span class="helper-text">Sent to FCM exactly as written, no modification — must match the full "messages:send" request body shape (top-level "message" key).</span>
           </div>
 
           <button type="submit" class="submit-btn" id="submitBtn">

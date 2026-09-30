@@ -20,26 +20,36 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 app.post('/api/send', async (req, res) => {
-  const { serviceAccount, tokens, topic, title, body, imageUrl, customData, customApns } = req.body;
+  const { serviceAccount, tokens, topic, title, body, imageUrl, customData, customApns, rawPayload } = req.body;
 
   if (!serviceAccount) {
     return res.status(400).json({ error: 'Service account JSON is required' });
   }
-  const trimmedTopic = typeof topic === 'string' ? topic.trim() : '';
-  const hasTokens = Array.isArray(tokens) && tokens.length > 0;
-  if (!hasTokens && !trimmedTopic) {
-    return res.status(400).json({ error: 'At least one FCM token or a topic is required' });
-  }
-  if (!title || !body) {
-    return res.status(400).json({ error: 'Notification title and body are required' });
-  }
-  if (customData !== undefined && customData !== null &&
-      (typeof customData !== 'object' || Array.isArray(customData))) {
-    return res.status(400).json({ error: 'customData must be a JSON object' });
-  }
-  if (customApns !== undefined && customApns !== null &&
-      (typeof customApns !== 'object' || Array.isArray(customApns))) {
-    return res.status(400).json({ error: 'customApns must be a JSON object' });
+
+  const isRawMode = rawPayload !== undefined && rawPayload !== null;
+  let trimmedTopic = '';
+
+  if (isRawMode) {
+    if (!isPlainObject(rawPayload) || !isPlainObject(rawPayload.message)) {
+      return res.status(400).json({ error: 'rawPayload must be a JSON object with a top-level "message" key' });
+    }
+  } else {
+    trimmedTopic = typeof topic === 'string' ? topic.trim() : '';
+    const hasTokens = Array.isArray(tokens) && tokens.length > 0;
+    if (!hasTokens && !trimmedTopic) {
+      return res.status(400).json({ error: 'At least one FCM token or a topic is required' });
+    }
+    if (!title || !body) {
+      return res.status(400).json({ error: 'Notification title and body are required' });
+    }
+    if (customData !== undefined && customData !== null &&
+        (typeof customData !== 'object' || Array.isArray(customData))) {
+      return res.status(400).json({ error: 'customData must be a JSON object' });
+    }
+    if (customApns !== undefined && customApns !== null &&
+        (typeof customApns !== 'object' || Array.isArray(customApns))) {
+      return res.status(400).json({ error: 'customApns must be a JSON object' });
+    }
   }
 
   let credentials;
@@ -82,6 +92,50 @@ app.post('/api/send', async (req, res) => {
   }
 
   const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+
+  if (isRawMode) {
+    logMsg('info', 'Sending raw payload as-is', {
+      endpoint: fcmUrl,
+      requestBody: rawPayload
+    });
+
+    try {
+      const response = await fetch(fcmUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify(rawPayload)
+      });
+
+      const responseText = await response.text();
+      let responseJson;
+      try {
+        responseJson = JSON.parse(responseText);
+      } catch (e) {
+        responseJson = responseText;
+      }
+
+      if (response.ok) {
+        logMsg('success', 'Successfully sent raw payload', {
+          status: response.status,
+          response: responseJson
+        });
+      } else {
+        logMsg('error', 'Failed to send raw payload', {
+          status: response.status,
+          response: responseJson
+        });
+      }
+    } catch (err) {
+      logMsg('error', 'Network error sending raw payload', {
+        error: err.message
+      });
+    }
+
+    return res.json({ logs });
+  }
 
   // Targets are either a single topic, or a list of device tokens
   const targets = trimmedTopic

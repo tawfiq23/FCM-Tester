@@ -16,8 +16,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const tokensTextarea = document.getElementById('tokens');
   const topicInput = document.getElementById('topic');
   const targetModeRadios = document.querySelectorAll('input[name="targetMode"]');
+  const guidedFields = document.getElementById('guidedFields');
+  const rawPayloadGroup = document.getElementById('rawPayloadGroup');
+  const rawPayloadTextarea = document.getElementById('rawPayload');
+  const payloadModeRadios = document.querySelectorAll('input[name="payloadMode"]');
 
   let serviceAccountJsonText = null;
+
+  // Payload Mode Toggle (Guided Form vs Raw JSON)
+  const updatePayloadMode = () => {
+    const mode = document.querySelector('input[name="payloadMode"]:checked').value;
+    if (mode === 'raw') {
+      guidedFields.classList.add('hidden');
+      rawPayloadGroup.classList.remove('hidden');
+    } else {
+      guidedFields.classList.remove('hidden');
+      rawPayloadGroup.classList.add('hidden');
+    }
+  };
+  payloadModeRadios.forEach(radio => radio.addEventListener('change', updatePayloadMode));
+  updatePayloadMode();
 
   // Target Mode Toggle (Tokens vs Topic)
   const updateTargetMode = () => {
@@ -158,6 +176,62 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const payloadMode = document.querySelector('input[name="payloadMode"]:checked').value;
+
+    if (payloadMode === 'raw') {
+      const rawPayloadText = rawPayloadTextarea.value.trim();
+      let rawPayload;
+      try {
+        rawPayload = JSON.parse(rawPayloadText);
+        if (typeof rawPayload !== 'object' || rawPayload === null || Array.isArray(rawPayload) || !rawPayload.message) {
+          addLog('error', 'Raw payload must be a JSON object with a top-level "message" key.');
+          return;
+        }
+      } catch (err) {
+        addLog('error', `Invalid raw payload JSON: ${err.message}`);
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitSpinner.classList.remove('hidden');
+      submitText.textContent = 'Sending...';
+      addLog('info', 'Sending raw payload as-is...');
+
+      try {
+        const response = await fetch('/api/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            serviceAccount: serviceAccountJsonText,
+            rawPayload
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.logs && Array.isArray(result.logs)) {
+          result.logs.forEach(logEntry => {
+            addLog(logEntry.type, logEntry.message, logEntry.data);
+          });
+        }
+
+        if (!response.ok) {
+          addLog('error', `Request failed with HTTP status ${response.status}`);
+        } else {
+          addLog('success', 'Raw payload request finished.');
+        }
+      } catch (err) {
+        addLog('error', `Failed to contact server: ${err.message}`);
+      } finally {
+        submitBtn.disabled = false;
+        submitSpinner.classList.add('hidden');
+        submitText.textContent = 'Send Notification';
+      }
+      return;
+    }
+
     const targetMode = document.querySelector('input[name="targetMode"]:checked').value;
     let tokens = [];
     let topic = null;
@@ -183,6 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const title = document.getElementById('title').value.trim();
     const body = document.getElementById('body').value.trim();
     const imageUrl = document.getElementById('imageUrl').value.trim();
+
+    if (!title || !body) {
+      addLog('error', 'Please enter a notification title and body.');
+      return;
+    }
 
     const customDataText = document.getElementById('customData').value.trim();
     let customData = null;
