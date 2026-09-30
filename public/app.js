@@ -23,20 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let serviceAccountJsonText = null;
 
-  // Payload Mode Toggle (Guided Form vs Raw JSON)
-  const updatePayloadMode = () => {
-    const mode = document.querySelector('input[name="payloadMode"]:checked').value;
-    if (mode === 'raw') {
-      guidedFields.classList.add('hidden');
-      rawPayloadGroup.classList.remove('hidden');
-    } else {
-      guidedFields.classList.remove('hidden');
-      rawPayloadGroup.classList.add('hidden');
-    }
-  };
-  payloadModeRadios.forEach(radio => radio.addEventListener('change', updatePayloadMode));
-  updatePayloadMode();
-
   // Target Mode Toggle (Tokens vs Topic)
   const updateTargetMode = () => {
     const mode = document.querySelector('input[name="targetMode"]:checked').value;
@@ -54,6 +40,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   targetModeRadios.forEach(radio => radio.addEventListener('change', updateTargetMode));
   updateTargetMode();
+
+  // Payload Mode Toggle (Guided Form vs Raw JSON)
+  const updatePayloadMode = () => {
+    const mode = document.querySelector('input[name="payloadMode"]:checked').value;
+    if (mode === 'raw') {
+      guidedFields.classList.add('hidden');
+      rawPayloadGroup.classList.remove('hidden');
+      // Hidden required fields block native form validation silently, so
+      // drop `required` on everything inside the hidden guided section.
+      tokensTextarea.required = false;
+      topicInput.required = false;
+    } else {
+      guidedFields.classList.remove('hidden');
+      rawPayloadGroup.classList.add('hidden');
+      updateTargetMode();
+    }
+  };
+  payloadModeRadios.forEach(radio => radio.addEventListener('change', updatePayloadMode));
+  updatePayloadMode();
 
   // File Handling
   const processFile = (file) => {
